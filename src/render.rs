@@ -14,6 +14,7 @@ const LIGHT_DIR: Vec3 = Vec3 {
     y: 5.0,
     z: -1.0,
 };
+const VERTICAL_FOV_DEGREES: f64 = 60.0;
 const IMAGE_PLANE_Z: f64 = -1.0;
 const T_MIN: f64 = 1e-6;
 const T_MAX: f64 = f64::INFINITY;
@@ -52,13 +53,26 @@ pub fn draw(width: usize, height: usize, scene: Vec<Box<dyn Hittable>>) {
     print!("{}", output)
 }
 
+fn calculate_viewport_params(aspect: f64) -> (f64, f64) {
+    // Fixed vertical FOV approach
+    let vfov_rad = VERTICAL_FOV_DEGREES.to_radians();
+    let viewport_height = 2.0 * (vfov_rad / 2.0).tan();
+    let viewport_width = viewport_height * aspect;
+
+    // Image plane is always at z = -1 with this approach
+    (viewport_width, viewport_height)
+}
+
 fn image_to_world(x: usize, y: usize, z: f64, width: usize, height: usize) -> Vec3 {
     let aspect = width as f64 / height as f64;
+    let (viewport_width, viewport_height) = calculate_viewport_params(aspect);
 
-    // map to [-aspect, aspect]
-    let u = ((x as f64 / width as f64) * 2.0 - 1.0) * aspect;
-    // map to range [-1, 1]
-    let v = (y as f64 / height as f64) * 2.0 - 1.0;
+    let half_width = viewport_width / 2.0;
+    let half_height = viewport_height / 2.0;
+
+    // Map pixel coordinates to viewport coordinates
+    let u = (x as f64 / width as f64) * viewport_width - half_width;
+    let v = (y as f64 / height as f64) * viewport_height - half_height;
 
     Vec3::new(u, -v, z)
 }
