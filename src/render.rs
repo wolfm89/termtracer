@@ -4,8 +4,6 @@ use crate::{
     vec3::Vec3,
 };
 
-const SHADES: &str = ".'`^\",:;Il!i?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-
 const CAMERA_ORIGIN: Vec3 = Vec3 {
     x: 0.0,
     y: 0.0,
@@ -22,34 +20,34 @@ const T_MAX: f64 = f64::INFINITY;
 
 const AMBIENT: f64 = 0.1;
 
-pub fn draw(width: usize, height: usize, scene: Vec<Box<dyn Hittable>>) {
-    let shades: Vec<char> = SHADES.chars().collect();
-    let max_idx = shades.len() - 1;
+pub struct Rgb {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
 
+impl Rgb {
+    pub fn new(r: u8, g: u8, b: u8) -> Self {
+        Self { r, g, b }
+    }
+}
+
+pub fn draw(width: usize, height: usize, scene: Vec<Box<dyn Hittable>>) {
     let light_dir = LIGHT_DIR.normalize();
 
     let mut output = String::new();
 
-    for y in 0..height {
+    for y in (0..height).step_by(2) {
         for x in 0..width {
-            // create ray
-            let direction = image_to_world(x, y, IMAGE_PLANE_Z, width, height);
-            let ray = Ray::new(CAMERA_ORIGIN, direction);
+            let fg = get_pixel_color(x, y, width, height, &scene, &light_dir);
+            let bg = get_pixel_color(x, y + 1, width, height, &scene, &light_dir);
 
-            // calculate hits
-            let hit: Option<HitRecord> = trace_ray(&ray, &scene);
+            let prefix = ansi_fg_bg(fg, bg);
 
-            // calculate intensity
-            let intensity: f64 = calc_intensity(&light_dir, hit);
-
-            // get symbol for intensity
-            let idx = ((intensity * (max_idx as f64)) as usize).clamp(0, max_idx);
-            let symbol = shades[idx];
-
-            // write symbol twice to adjust for characters being around 2x taller than wide
-            output.push(symbol);
+            output.push_str(&prefix);
+            output.push('▀');
         }
-        output.push('\n');
+        output.push_str("\x1b[0m\n");
     }
     print!("{}", output)
 }
@@ -99,4 +97,31 @@ fn calc_intensity(light_dir: &Vec3, hit: Option<HitRecord>) -> f64 {
         }
     }
     intensity
+}
+
+fn intensity_to_rgb(intensity: f64) -> Rgb {
+    let v = (intensity * 255.).round().clamp(0., 255.) as u8;
+    Rgb::new(v, v, v)
+}
+
+fn ansi_fg_bg(fg: Rgb, bg: Rgb) -> String {
+    format!(
+        "\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m",
+        fg.r, fg.g, fg.b, bg.r, bg.g, bg.b
+    )
+}
+
+fn get_pixel_color(
+    x: usize,
+    y: usize,
+    width: usize,
+    height: usize,
+    scene: &Vec<Box<dyn Hittable>>,
+    light_dir: &Vec3,
+) -> Rgb {
+    let dir = image_to_world(x, y, IMAGE_PLANE_Z, width, height);
+    let ray = Ray::new(CAMERA_ORIGIN, dir);
+    let hit: Option<HitRecord> = trace_ray(&ray, scene);
+    let intensity: f64 = calc_intensity(light_dir, hit);
+    intensity_to_rgb(intensity)
 }
