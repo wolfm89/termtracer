@@ -1,20 +1,32 @@
+use std::sync::Arc;
+
 use crate::{
     hit::{HitRecord, Hittable},
+    material::Material,
     ray::Ray,
     vec3::Vec3,
 };
 
 const EPSILON: f64 = 1e-8; // A small value for float comparisons
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone)]
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
+    pub material: Arc<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(center: Vec3, radius: f64) -> Self {
-        Self { center, radius }
+    pub fn new(center: Vec3, radius: f64, material: Arc<dyn Material>) -> Self {
+        Self {
+            center,
+            radius,
+            material,
+        }
+    }
+
+    pub fn point_on_surface(&self) -> Vec3 {
+        self.center + Vec3::random_unit_vector() * self.radius
     }
 }
 
@@ -61,8 +73,15 @@ impl Hittable for Sphere {
 
         // 4. Record the hit
         let p = ray.at(t);
-        let normal = (p - self.center) / self.radius;
+        let outward_normal = (p - self.center) / self.radius;
 
-        Some(HitRecord::new(t, p, normal))
+        let normal;
+        if ray.direction.dot(&outward_normal) > 0.0 {
+            normal = -outward_normal;
+        } else {
+            normal = outward_normal;
+        }
+
+        Some(HitRecord::new(t, p, normal, self.material.clone()))
     }
 }

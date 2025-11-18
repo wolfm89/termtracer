@@ -1,5 +1,7 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
+use rand::Rng;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec3 {
     pub x: f64,
@@ -33,6 +35,18 @@ impl Vec3 {
     pub fn dot(&self, rhs: &Vec3) -> f64 {
         self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
     }
+
+    pub fn random_unit_vector() -> Self {
+        let mut rng = rand::rng();
+        let a = rng.random_range(0.0..2.0 * std::f64::consts::PI);
+        let z = rng.random_range(-1.0..1.0);
+        let r = (1.0_f64 - z * z).sqrt();
+        Vec3::new(r * a.cos(), r * a.sin(), z)
+    }
+
+    pub fn zero() -> Self {
+        Vec3::new(0.0, 0.0, 0.0)
+    }
 }
 
 impl Add for Vec3 {
@@ -56,6 +70,14 @@ impl Mul<f64> for Vec3 {
 
     fn mul(self, rhs: f64) -> Self::Output {
         Vec3::new(self.x * rhs, self.y * rhs, self.z * rhs)
+    }
+}
+
+impl Mul<Vec3> for Vec3 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: Vec3) -> Self::Output {
+        Vec3::new(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z)
     }
 }
 
