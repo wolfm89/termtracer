@@ -12,8 +12,6 @@ use crate::{
 const T_MIN: f64 = 1e-3;
 const T_MAX: f64 = f64::INFINITY;
 
-const SAMPLES_PER_PIXEL: usize = 50;
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Rgb {
     pub r: u8,
@@ -119,7 +117,7 @@ fn get_pixel_color(
     let mut color = Vec3::zero();
 
     let mut rng = rand::rng();
-    for _ in 0..SAMPLES_PER_PIXEL {
+    for _ in 0..cam.samples_per_pixel {
         let dx = rng.random_range(-0.5..0.5);
         let dy = rng.random_range(-0.5..0.5);
 
@@ -127,9 +125,9 @@ fn get_pixel_color(
         let v = (y as f64 + dy) / (height as f64);
 
         let ray = cam.get_ray(u, v);
-        color = color + ray_color(&ray, scene, 10);
+        color = color + ray_color(&ray, scene, cam.max_depth);
     }
 
-    color = color / (SAMPLES_PER_PIXEL as f64);
+    color = color / (cam.samples_per_pixel as f64);
     color_to_rgb(color)
 }

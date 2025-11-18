@@ -2,6 +2,8 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use rand::Rng;
 
+const EPSILON: f64 = 1e-8;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vec3 {
     pub x: f64,
@@ -44,8 +46,29 @@ impl Vec3 {
         Vec3::new(r * a.cos(), r * a.sin(), z)
     }
 
+    pub fn random_on_hemisphere(&self) -> Vec3 {
+        let on_unit_sphere = Vec3::random_unit_vector();
+        if on_unit_sphere.dot(self) > 0.0 {
+            // In the same hemisphere as the given vector
+            on_unit_sphere
+        } else {
+            -on_unit_sphere
+        }
+    }
+
     pub fn zero() -> Self {
         Vec3::new(0.0, 0.0, 0.0)
+    }
+
+    pub fn near_zero(&self) -> bool {
+        (self.x < EPSILON) && (self.y < EPSILON) && (self.z < EPSILON)
+    }
+
+    pub fn reflect(&self, normal: &Vec3) -> Vec3 {
+        // v · n gives projection onto normal
+        // Multiply by 2 (because reflect across plane)
+        // Subtract from v
+        *self - *normal * 2.0_f64 * self.dot(normal)
     }
 }
 
